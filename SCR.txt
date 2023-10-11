@@ -1,0 +1,11 @@
+NXP Software Content Register
+--------------------------------------------
+
+Package:					el2go-tp-app
+Version:					1.0.0
+Outgoing License: 			BSD-3-Clause
+License File:				LICENSE
+Type of content: 			source, scripts
+Description and comments: 	Contains SPDK-like Python application
+Origin: 					NXP(BSD-3-Clause)
+Release Location:			https://github.com/NXP/el2go-tp-app
