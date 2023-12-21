@@ -12,17 +12,22 @@ import sys
 import click
 
 # Some of the app utilities from SPSDK may come quite handy
-from spsdk.apps.utils import (
+from spsdk.apps.utils.utils import (
     INT,
-    MBootInterface,
     catch_spsdk_error,
-    get_interface,
+)
+
+from spsdk.apps.utils import spsdk_logger
+from spsdk.apps.utils.common_cli_options import (
     isp_interfaces,
     spsdk_apps_common_options,
-    spsdk_logger,
+    is_click_help
 )
 
 from .el2go_tp_app import EL2GOMboot, EL2GOStatus
+from spsdk.mboot.mcuboot import McuBoot
+from spsdk.mboot.scanner import get_mboot_interface
+from .api_utils import *
 
 
 # This is pretty much a carbon copy of blhost
@@ -30,7 +35,7 @@ from .el2go_tp_app import EL2GOMboot, EL2GOStatus
 # this decorator is responsible for interface selection in CLI (--port/--usb etc.)
 # at this point, everything this this decorator produces must be explicitly handled in user code
 # in the future, this will no longer be the case and the decorator will return MBootInterface directly
-@isp_interfaces(uart=True, usb=True, lpcusbsio=False, json_option=False)
+@isp_interfaces(uart=True, usb=True, lpcusbsio=True)
 # this one is for simple --verbose/--debug/--help/--version options
 @spsdk_apps_common_options
 @click.pass_context
@@ -38,26 +43,37 @@ def main(
     ctx: click.Context,
     port: str,
     usb: str,
-    timeout: int,
+    lpcusbsio: str,
+    use_json: bool,
     log_level: int,
-):
+    timeout: int,
+) -> int:
     """Use EdgeLock 2GO service to provision a device."""
     log_level = log_level or logging.WARNING
     # our logger provides some fancy colors and some basic timing (run the app with -vv/--debug to see it)
     spsdk_logger.install(level=log_level)
 
     # no need to scan for interfaces if we only want to show a help message
-    if "--help" not in sys.argv[1:]:
-        # anything stored in `ctx.obj` can be later retrieved via `click.pass_obj` decorator
-        ctx.obj = get_interface(module="mboot", port=port, usb=usb, timeout=timeout)
+    # anything stored in `ctx.obj` can be later retrieved via `click.pass_obj` decorator
+    if not is_click_help(ctx, sys.argv):
+        ctx.obj = {
+            "interface": get_mboot_interface(
+            port=port,
+            usb=usb,
+            timeout=timeout,
+            lpcusbsio=lpcusbsio,
+        ),
+        "use_json": use_json,
+        "suppress_progress_bar": use_json or log_level < logging.WARNING,
+    }
 
 
 @main.command(name="get-fw-version")
-@click.pass_obj
+@click.pass_context
 # The subcommand name doesn't necessarily has to match the function name
-def get_version(device: MBootInterface) -> None:
+def get_version(ctx: click.Context) -> None:
     """ Return EL2GO NXP Provisioning Firmware's version. """
-    with EL2GOMboot(device=device) as el2go_mboot:
+    with EL2GOMboot(ctx.obj["interface"]) as el2go_mboot:
         version = el2go_mboot.el2go_get_version()
     display_output(el2go_mboot.status_code)
     if el2go_mboot.status_code == EL2GOStatus.SUCCESS:
@@ -67,7 +83,6 @@ def get_version(device: MBootInterface) -> None:
 
 
 @main.command()
-@click.pass_obj
 @click.argument("address", type=INT(), required=True)
 @click.option(
     "-d",
@@ -78,14 +93,15 @@ def get_version(device: MBootInterface) -> None:
         "Enable Provisioning Firmware dry run, meaning that no fuses will be burned "
     ),
 )
+@click.pass_context
 def close_device(
-    device: MBootInterface,
+    ctx: click.Context,
     address: int,
     dry_run: bool,
 ) -> None:
     """Launch EL2GO NXP Provisioning Firmware."""
 
-    with EL2GOMboot(device=device) as mboot:
+    with EL2GOMboot(ctx.obj["interface"]) as mboot:
         response = mboot.close_device(address, dry_run)
         display_output(mboot.status_code)
         if mboot.status_code == EL2GOStatus.SUCCESS:
@@ -94,6 +110,35 @@ def close_device(
                 click.echo(f"Device has been successfully provisioned.")
             else:
                 click.echo(f"Provision of device has failed with error code :{hex_response}.")
+
+
+@main.command()
+@click.argument("file", type=str, required=True)
+@click.pass_context
+def get_secure_objects(
+    ctx: click.Context,
+    file: str,
+) -> None:
+    """Download Secure Objects."""
+    response = ""
+
+    config = ConfigParameters()
+
+    if config.parse_config_file(file) == -1:
+        click.echo(f"ERROR: Parsing config file failed")
+        exit()
+
+    with McuBoot(ctx.obj["interface"]) as mboot:
+        for x in range(config.uuid_fuse_start, config.uuid_fuse_end + 1):
+            response += str_little_endian(mboot.efuse_read_once(x))
+    response = int(response, 16)
+    config.device_id = str(response)
+
+    assign_device_to_devicegroup(config)
+    status = download_secure_objects(config)
+
+    if status == "GENERATION_TRIGGERED":
+        click.echo(f"Secure Objects generation timeout")
 
 
 # just a little thing to get a nicer-looking status code string

@@ -9,4 +9,4 @@
 
 __author__ = """Your name"""
 __email__ = 'your.mail@example.com'
-__version__ = '1.0.0'
+__version__ = '1.1.0'

@@ -1,0 +1,63 @@
+<!--
+# Copyright 2023 NXP
+#
+# SPDX-License-Identifier: BSD-3-Clause
+-->
+<config>
+    <!--
+     Function: Device Group ID in which the connected secure element needs to be assigned
+     Expected format: String
+     e.g., 49
+ -->
+    <deviceGroupId>DECIMAL_NUMBER</deviceGroupId>
+    <nc12>12_DIGIT_NUMBER</nc12>
+    <!--
+ Function: hardware family type.
+ Expected format: String
+ e.g RW6,IMX8
+-->
+    <hardwareFamilyType>HARDWARE_FAMILY_TYPE</hardwareFamilyType>
+    <!--
+ Function: First UID fuse address.
+ Expected format: Integer
+ e.g 46
+-->
+    <firstFuseAddress>OTP_ADDRESS</firstFuseAddress>
+    <!--
+Function: Last UID fuse address.
+Expected format: Integer
+e.g 49
+-->
+    <lastFuseAddress>OTP_ADDRESS</lastFuseAddress>
+    <!--
+Function: Delay in seconds between EL2GO API requests regarding Secure Objects generation status.
+Default value is 5 seconds.
+Expected format: Unsigned Integer
+e.g 5
+-->
+    <delay>5</delay>
+    <!--
+Function: Timeout in seconds off downloading Secure Objects through EL2GO API operation.
+Default value is 60 seconds.
+Expected format: Unsigned Integer
+e.g 60
+-->
+    <timeout>60</timeout>
+    <el2goSettings>
+    <!--
+    Function: Hostname of the EL2GO backend to be used. Can be acquired by visiting https://www.edgelock2go.com -> Admin Settings -> Services -> DeviceLink DNS entry
+    Expected: url
+-->
+        <edgelock2goHostname>EL2GO_HOSTNAME</edgelock2goHostname>
+    <!--
+        Function: API-key of the EL2GO backend to be used. Can be acquired by visiting https://www.edgelock2go.com -> Admin Settings -> API Keys ->
+        Add new API key -> Provide name and permissions -> Create
+    -->
+        <edgelock2goApiKey>EL2GO_API_KEY</edgelock2goApiKey>
+    <!--
+        Function: Base URL of the EL2GO backend API without an / at the end.
+        Expected format: Url
+    -->
+        <edgelock2goApiUrl>EL2GO_API</edgelock2goApiUrl>
+    </el2goSettings>
+</config>

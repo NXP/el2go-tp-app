@@ -15,7 +15,7 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-requirements = ["Click>=8.0", "spsdk<2"]
+requirements = ["Click>=8.0", "spsdk<2.1"]
 
 test_requirements = [
     "pytest>=3",
@@ -52,6 +52,6 @@ setup(
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/NXP/el2go-tp-app",
-    version="1.0.0",
+    version="1.1.0",
     zip_safe=False,
 )
